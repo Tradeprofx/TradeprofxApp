@@ -23,19 +23,42 @@ const CallbackPage = () => {
     return (
         <Callback
             onSignInSuccess={(tokens: Record<string, string>) => {
+                console.log('=== TradeProfx OAuth Success ===');
+                console.log('Received tokens:', Object.keys(tokens));
+                console.log('Primary account:', tokens.acct1);
+                console.log('Primary token exists:', !!tokens.token1);
+                console.log('All accounts:', Object.keys(tokens).filter(key => key.startsWith('acct')).map(key => tokens[key]));
+                
                 localStorage.setItem('config.tokens', JSON.stringify(tokens));
                 localStorage.setItem('config.account1', tokens.token1);
                 localStorage.setItem('active_loginid', tokens.acct1);
+                
+                console.log('Stored in localStorage:', {
+                    'config.tokens': !!localStorage.getItem('config.tokens'),
+                    'config.account1': !!localStorage.getItem('config.account1'),
+                    'active_loginid': localStorage.getItem('active_loginid')
+                });
+                
                 if (!sessionStorage.getItem('active_loginid') && /^(CR|MF|VRTC)\d/.test(tokens.acct1)) {
                     sessionStorage.setItem('active_loginid', tokens.acct1);
+                    console.log('Set sessionStorage active_loginid:', tokens.acct1);
                 }
                 if (!sessionStorage.getItem('active_wallet_loginid') && /^(CRW|MFW|VRW)\d/.test(tokens.acct1)) {
                     sessionStorage.setItem('active_wallet_loginid', tokens.acct1);
+                    console.log('Set sessionStorage active_wallet_loginid:', tokens.acct1);
                 }
+                
                 const redirectTo = sessionStorage.getItem('tradershub_redirect_to');
                 const postLoginRedirectUri = localStorage.getItem('config.post_login_redirect_uri') || '';
                 const params = new URLSearchParams(postLoginRedirectUri);
                 const containsAccount = params.get('account');
+
+                console.log('Redirect info:', {
+                    redirectTo,
+                    postLoginRedirectUri,
+                    containsAccount,
+                    currentPath: window.location.pathname
+                });
 
                 //added a check for postLoginRedirectUri to basically sync account when user created a new currency from Tradershub and redirected back to DTrader
                 if (redirectTo || (postLoginRedirectUri && !!containsAccount)) {
@@ -92,6 +115,7 @@ const CallbackPage = () => {
                         sessionStorage.setItem('active_loginid', matchingLoginId);
                         localStorage.setItem('config.account1', matchingToken);
                         localStorage.setItem('active_loginid', matchingLoginId);
+                        console.log('Set matching account:', matchingLoginId);
                     } else if (!matchingWalletLoginId && !matchingToken && !tokens.acct1.startsWith('CRW')) {
                         if (tokens.acct1.startsWith('VR')) {
                             const url = new URL(window.location.href);
@@ -105,29 +129,42 @@ const CallbackPage = () => {
                         sessionStorage.setItem('active_loginid', tokens.acct1);
                         localStorage.setItem('config.account1', tokens.token1);
                         localStorage.setItem('active_loginid', tokens.acct1);
+                        console.log('Set default account:', tokens.acct1);
                     }
                     if (matchingWalletLoginId && matchingToken) {
                         sessionStorage.setItem('active_wallet_loginid', matchingWalletLoginId);
+                        console.log('Set wallet login ID:', matchingWalletLoginId);
                     }
 
                     sessionStorage.removeItem('tradershub_redirect_to');
+                    console.log('Redirecting to:', redirectTo || postLoginRedirectUri);
                     window.history.replaceState({}, '', redirectTo || postLoginRedirectUri);
                     window.location.href = redirectTo || postLoginRedirectUri;
                 } else {
                     const postLoginRedirectUri = localStorage.getItem('config.post_login_redirect_uri');
                     if (postLoginRedirectUri) {
+                        console.log('Redirecting to postLoginRedirectUri:', postLoginRedirectUri);
                         window.history.replaceState({}, '', postLoginRedirectUri);
                         window.location.href = postLoginRedirectUri;
                     } else {
+                        console.log('Redirecting to traders_hub:', routes.traders_hub);
                         window.history.replaceState({}, '', routes.traders_hub);
                         window.location.href = routes.traders_hub;
                     }
                 }
+                console.log('=== End OAuth Success ===');
+            }}
+            onSignInError={(error) => {
+                console.error('=== TradeProfx OAuth Error ===');
+                console.error('OAuth error:', error);
+                console.error('Current URL:', window.location.href);
+                console.error('=== End OAuth Error ===');
             }}
             renderReturnButton={() => {
                 return (
                     <Button
                         onClick={() => {
+                            console.log('TradeProfx: Return button clicked, going to home');
                             history.push('/');
                             window.location.reload();
                         }}
