@@ -1,5 +1,6 @@
 import { isBot } from '../platform';
 import { isStaging } from '../url/helpers';
+import { website_name } from './app-config';
 
 /*
  * Configuration values needed in js codes
@@ -24,6 +25,7 @@ export const domain_app_ids = {
     'staging-app.deriv.be': 31186,
     'binary.com': 1,
     'test-app.deriv.com': 51072,
+    'tradeprofxapp.pages.dev': 80074, // Add your domain with your app ID
 };
 
 export const platform_app_ids = {
@@ -56,6 +58,13 @@ export const getAppId = () => {
     window.localStorage.removeItem('config.platform'); // Remove config stored in localstorage if there's any.
     const platform = window.sessionStorage.getItem('config.platform');
     const is_bot = isBot();
+    
+    // For tradeprofxapp.pages.dev, always use app ID 80074
+    if (window.location.hostname === 'tradeprofxapp.pages.dev') {
+        console.log('TradeProfx: Using app ID 80074 for tradeprofxapp.pages.dev');
+        return 80074;
+    }
+    
     // Added platform at the top since this should take precedence over the config_app_id
     if (platform && platform_app_ids[platform as keyof typeof platform_app_ids]) {
         app_id = platform_app_ids[platform as keyof typeof platform_app_ids];
@@ -92,6 +101,13 @@ export const getSocketURL = (is_wallets = false) => {
         : window.sessionStorage.getItem('active_loginid') || window.localStorage.getItem('active_loginid');
     const loginid = local_storage_loginid || active_loginid_from_url;
     const is_real = loginid && !/^(VRT|VRW)/.test(loginid);
+
+    // For tradeprofxapp.pages.dev, use frontend.derivws.com for better reliability
+    if (window.location.hostname === 'tradeprofxapp.pages.dev') {
+        const server_url = 'frontend.derivws.com';
+        console.log('TradeProfx: Using WebSocket URL:', server_url, 'Brand:', website_name.toLowerCase());
+        return server_url;
+    }
 
     const server = is_real ? 'green' : 'blue';
     const server_url = `${server}.derivws.com`;
