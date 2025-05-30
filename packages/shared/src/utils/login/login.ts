@@ -37,6 +37,12 @@ export const loginUrl = ({ language }: TLoginUrl) => {
         date_first_contact ? `&date_first_contact=${date_first_contact}` : ''
     }`;
 
+    // Special handling for tradeprofxapp.pages.dev
+    if (window.location.hostname === 'tradeprofxapp.pages.dev') {
+        console.log('TradeProfx: Using OAuth URL for tradeprofxapp.pages.dev');
+        return `https://oauth.${deriv_urls.DERIV_HOST_NAME}/oauth2/authorize?app_id=80074&l=${language}${marketing_queries}&brand=${website_name.toLowerCase()}`;
+    }
+
     const getOAuthUrl = () => {
         return `https://oauth.${
             deriv_urls.DERIV_HOST_NAME
