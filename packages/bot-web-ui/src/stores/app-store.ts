@@ -46,6 +46,8 @@ export default class AppStore {
       reinitializeBot: action,
       setUrlParams: action,
       registerBalanceListener: action,
+      forceUpdateTradeEngine: action,
+      updateBotTradeEngineClient: action,
     })
 
     this.root_store = root_store
@@ -164,6 +166,65 @@ export default class AppStore {
     }
   }
 
+  // Method to force update the bot's trade engine with correct client data
+  forceUpdateTradeEngine = () => {
+    const { client } = this.core
+
+    console.log("Bot: Force updating trade engine with client balance:", client.balance, client.currency)
+
+    // Direct access to bot's trade engine
+    if (DBot.interpreter?.bot?.tradeEngine) {
+      const engine = DBot.interpreter.bot.tradeEngine
+
+      // Replace the entire client object
+      engine.client = client
+
+      // Force update balance if it exists as a property
+      if ("balance" in engine) {
+        engine.balance = client.balance
+      }
+
+      // Update any nested API client
+      if (engine.api && engine.api.client) {
+        engine.api.client = client
+      }
+
+      // Update any account info
+      if (engine.accountInfo) {
+        engine.accountInfo = {
+          ...engine.accountInfo,
+          balance: client.balance,
+          currency: client.currency,
+          loginid: client.loginid,
+        }
+      }
+
+      // Update any balance cache
+      if (engine.balanceCache) {
+        engine.balanceCache = client.balance
+      }
+
+      // Update any client cache
+      if (engine.clientCache) {
+        engine.clientCache = client
+      }
+
+      console.log("Bot: Trade engine updated. New balance:", engine.client.balance)
+      console.log("Bot: Trade engine client loginid:", engine.client.loginid)
+    }
+
+    // Also update DBot's global client reference
+    if (DBot.client) {
+      DBot.client = client
+      console.log("Bot: Updated DBot.client with balance:", client.balance)
+    }
+
+    // Update any global balance references
+    if (window.DBot) {
+      window.DBot.client = client
+    }
+  }
+
   // Register balance listener like the official implementation
   registerBalanceListener = () => {
     const { client } = this.core
@@ -180,11 +241,8 @@ export default class AppStore {
           console.log("Bot: Updated dbot_store with new balance")
         }
 
-        // If there's an active bot interpreter, ensure it has the latest client data
-        if (DBot.interpreter?.bot?.tradeEngine) {
-          DBot.interpreter.bot.tradeEngine.client = client
-          console.log("Bot: Updated trade engine with new balance")
-        }
+        // Force update the trade engine
+        this.forceUpdateTradeEngine()
       },
     )
   }
@@ -196,8 +254,17 @@ export default class AppStore {
     // Terminate any existing bot instances
     DBot.terminateBot()
 
+    // Wait for termination to complete
+    await new Promise((resolve) => setTimeout(resolve, 500))
+
     // Reinitialize the interpreter with fresh account data
     DBot.initializeInterpreter()
+
+    // Wait for initialization to complete
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    // FORCE UPDATE THE TRADE ENGINE
+    this.forceUpdateTradeEngine()
 
     // Refresh symbols and contracts
     if (ApiHelpers.instance) {
@@ -300,6 +367,45 @@ export default class AppStore {
   ensureCorrectAccount = async () => {
     const switched = await this.handleAccountFromUrl()
     return switched
+  }
+
+  // Method to directly update the bot's trade engine client
+  updateBotTradeEngineClient = () => {
+    const { client } = this.core
+
+    console.log("Bot: Updating trade engine client directly")
+
+    // Access the bot's trade engine and replace its client
+    if (DBot.interpreter?.bot?.tradeEngine) {
+      const tradeEngine = DBot.interpreter.bot.tradeEngine
+
+      // Replace the client object entirely
+      tradeEngine.client = client
+
+      // If the trade engine has a balance property, update it directly
+      if ("balance" in tradeEngine) {
+        tradeEngine.balance = client.balance
+      }
+
+      // If there's an API object within the trade engine, update it too
+      if (tradeEngine.api) {
+        tradeEngine.api.client = client
+      }
+
+      // Force update any cached balance values
+      if (typeof tradeEngine.updateBalance === "function") {
+        tradeEngine.updateBalance(client.balance)
+      }
+
+      console.log("Bot: Trade engine client updated with balance:", client.balance, client.currency)
+      console.log("Bot: Trade engine now has client:", !!tradeEngine.client)
+    }
+
+    // Also update the DBot's main client reference
+    if (DBot.client) {
+      DBot.client = client
+      console.log("Bot: Updated DBot.client with balance:", client.balance)
+    }
   }
 
   onMount = () => {
@@ -475,6 +581,11 @@ export default class AppStore {
 
         // Update URL params after account switch
         this.setUrlParams()
+
+        // Force update trade engine after account switch
+        setTimeout(() => {
+          this.forceUpdateTradeEngine()
+        }, 1000)
 
         // Re-check account from URL after account switch
         setTimeout(async () => {
