@@ -179,8 +179,8 @@ export default class RunPanelStore {
     // Check and switch to correct account based on URL parameter
     await this.root_store.app.ensureCorrectAccount()
 
-    // Wait a bit more for any pending updates
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    // Wait for balance to be properly updated after account switch
+    await new Promise((resolve) => setTimeout(resolve, 2000))
 
     console.log(
       "Bot: After account check - Current account:",
@@ -192,12 +192,11 @@ export default class RunPanelStore {
       client.currency,
     )
 
-    // Force another balance refresh right before running
-    await this.root_store.app.forceBalanceRefresh()
-
-    // Check if we have sufficient balance
-    if (client.balance <= 0 && client.is_virtual) {
-      console.warn("Bot: Demo account with zero balance detected. This should not happen.")
+    // Verify we have the correct balance before proceeding
+    if (client.is_virtual && client.balance <= 0) {
+      console.error("Bot: Demo account has zero balance. This should not happen.")
+      this.showErrorMessage("Demo account balance is zero. Please contact support.")
+      return
     }
 
     this.dbot.saveRecentWorkspace()
@@ -257,15 +256,16 @@ export default class RunPanelStore {
       summary_card.clear()
       this.setContractStage(contract_stages.STARTING)
 
+      // Ensure the dbot store has the latest client data before running
+      if (this.root_store.app.dbot_store) {
+        this.root_store.app.dbot_store.client = client
+        console.log("Bot: Updated dbot_store with current client before running")
+        console.log("Bot: dbot_store client balance:", this.root_store.app.dbot_store.client.balance)
+      }
+
       // Force reinitialize the bot before running to ensure fresh account data
       this.dbot.terminateBot()
       this.dbot.initializeInterpreter()
-
-      // Update the dbot store with current client before running
-      if (this.root_store.app.dbot_store) {
-        this.root_store.app.dbot_store.client = client
-        console.log("Bot: Updated dbot_store client before running")
-      }
 
       console.log("Bot: Starting bot with balance:", client.balance, client.currency)
       this.dbot.runBot()
