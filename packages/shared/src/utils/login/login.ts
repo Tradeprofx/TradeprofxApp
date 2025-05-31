@@ -40,7 +40,7 @@ export const loginUrl = ({ language }: TLoginUrl) => {
     // Special handling for tradeprofxapp.pages.dev
     if (window.location.hostname === 'tradeprofxapp.pages.dev') {
         console.log('TradeProfx: Using OAuth URL for tradeprofxapp.pages.dev');
-        return `https://oauth.${deriv_urls.DERIV_HOST_NAME}/oauth2/authorize?app_id=80074&l=${language}${marketing_queries}&brand=${website_name.toLowerCase()}`;
+        return `https://oauth.deriv.com/oauth2/authorize?app_id=80074&l=${language}${marketing_queries}&brand=${website_name.toLowerCase()}&platform=tradeprofx`;
     }
 
     const getOAuthUrl = () => {
