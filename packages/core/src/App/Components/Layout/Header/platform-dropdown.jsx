@@ -20,9 +20,32 @@ const PlatformBox = ({ platform: { icon, description } }) => (
         </div>
     </React.Fragment>
 );
-const appendAccountParamToUrl = (link_to, client) => {
-    const { is_virtual, currency } = client;
 
+const appendAccountParamToUrl = (link_to, client) => {
+    const { is_virtual, currency, loginid } = client;
+
+    // For tradeprofxapp.pages.dev, use more specific account handling
+    if (window.location.hostname === 'tradeprofxapp.pages.dev') {
+        console.log('TradeProfx: Account info for platform switch:', { is_virtual, currency, loginid });
+        
+        if (is_virtual) {
+            return `${link_to}${link_to.includes('?') ? '&' : '?'}account=demo`;
+        }
+        
+        if (currency) {
+            return `${link_to}${link_to.includes('?') ? '&' : '?'}account=${currency.toLowerCase()}`;
+        }
+        
+        // Fallback to loginid if available
+        if (loginid) {
+            const account_type = loginid.startsWith('VRT') ? 'demo' : 'real';
+            return `${link_to}${link_to.includes('?') ? '&' : '?'}account=${account_type}`;
+        }
+        
+        return link_to;
+    }
+
+    // Original logic for other domains
     if (is_virtual) {
         return `${link_to}${link_to.includes('?') ? '&' : '?'}account=demo`;
     }
@@ -55,6 +78,7 @@ const PlatformDropdownContent = ({ platform, app_routing_history, client }) => {
                 className={`platform-dropdown__list-platform ${
                     getActivePlatform(app_routing_history) === platform.name ? 'active' : ''
                 }`}
+                target={window.location.hostname === 'tradeprofxapp.pages.dev' ? '_self' : '_blank'}
             >
                 <PlatformBox platform={platform} />
             </a>
