@@ -43,6 +43,7 @@ export default class AppStore {
       handleAccountFromUrl: action,
       ensureCorrectAccount: action,
       reinitializeBot: action,
+      forceBalanceRefresh: action,
     })
 
     this.root_store = root_store
@@ -148,12 +149,46 @@ export default class AppStore {
     return false
   }
 
+  // Force balance refresh in the bot's trading engine
+  forceBalanceRefresh = async () => {
+    const { client } = this.core
+
+    console.log("Bot: Forcing balance refresh in trading engine")
+    console.log("Bot: Current client balance:", client.balance, client.currency)
+
+    // Force update the dbot_store with fresh client data
+    if (this.dbot_store) {
+      this.dbot_store.client = client
+      console.log("Bot: Updated dbot_store client reference")
+    }
+
+    // If there's an active bot interpreter, update its client reference
+    if (DBot.interpreter?.bot?.tradeEngine) {
+      // Force the trade engine to use the current client
+      DBot.interpreter.bot.tradeEngine.client = client
+      console.log("Bot: Updated trade engine client reference")
+    }
+
+    // Trigger a balance update event if available
+    if (client.balance !== undefined) {
+      // Force trigger balance update in the core
+      const balanceEvent = new CustomEvent("balance.update", {
+        detail: { balance: client.balance, currency: client.currency },
+      })
+      window.dispatchEvent(balanceEvent)
+      console.log("Bot: Dispatched balance update event")
+    }
+  }
+
   // Method to reinitialize the bot after account switching
   reinitializeBot = async () => {
     console.log("Bot: Reinitializing bot engine after account switch")
 
     // Terminate any existing bot instances
     DBot.terminateBot()
+
+    // Force balance refresh before reinitializing
+    await this.forceBalanceRefresh()
 
     // Reinitialize the interpreter with fresh account data
     DBot.initializeInterpreter()
@@ -238,14 +273,16 @@ export default class AppStore {
             client.currency,
           )
 
-          // Reinitialize the bot after account switch
+          // Force balance refresh and reinitialize the bot after account switch
+          await this.forceBalanceRefresh()
           await this.reinitializeBot()
 
           return true
         } else if (target_loginid === client.loginid) {
           console.log("Bot: Already on correct account. Balance:", client.balance, client.currency)
 
-          // Even if we're on the correct account, reinitialize to ensure fresh data
+          // Even if we're on the correct account, force balance refresh and reinitialize
+          await this.forceBalanceRefresh()
           await this.reinitializeBot()
         }
       }
@@ -499,3 +536,4 @@ export default class AppStore {
     this.handleErrorForEu(true)
   }
 }
+
