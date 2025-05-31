@@ -192,6 +192,11 @@ export default class RunPanelStore {
       client.currency,
     )
 
+    // Check if we have sufficient balance
+    if (client.balance <= 0 && client.is_virtual) {
+      console.warn("Bot: Demo account with zero balance detected. This should not happen.")
+    }
+
     this.dbot.saveRecentWorkspace()
     this.dbot.unHighlightAllBlocks()
 
@@ -248,6 +253,11 @@ export default class RunPanelStore {
 
       summary_card.clear()
       this.setContractStage(contract_stages.STARTING)
+
+      // Force reinitialize the bot before running to ensure fresh account data
+      this.dbot.terminateBot()
+      this.dbot.initializeInterpreter()
+
       this.dbot.runBot()
     })
     this.setShowBotStopMessage(false)
