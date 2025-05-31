@@ -26,6 +26,7 @@ export default class AppStore {
   disposeSwitchAccountListener: unknown
   disposeLandingCompanyChangeReaction: unknown
   disposeResidenceChangeReaction: unknown
+  disposeBalanceListener: unknown
 
   constructor(root_store: RootStore, core: TStores) {
     makeObservable(this, {
@@ -43,7 +44,8 @@ export default class AppStore {
       handleAccountFromUrl: action,
       ensureCorrectAccount: action,
       reinitializeBot: action,
-      forceBalanceRefresh: action,
+      setUrlParams: action,
+      registerBalanceListener: action,
     })
 
     this.root_store = root_store
@@ -149,35 +151,42 @@ export default class AppStore {
     return false
   }
 
-  // Force balance refresh in the bot's trading engine
-  forceBalanceRefresh = async () => {
+  // Method to set URL parameters like the official Deriv implementation
+  setUrlParams = () => {
+    const { client } = this.core
+    const url = new URL(window.location.href)
+    const loginid = client.loginid
+    const account_param = /^VR/.test(loginid) ? "demo" : client.accounts[loginid]?.currency
+
+    if (account_param) {
+      url.searchParams.set("account", account_param)
+      window.history.replaceState({}, "", url.toString())
+    }
+  }
+
+  // Register balance listener like the official implementation
+  registerBalanceListener = () => {
     const { client } = this.core
 
-    console.log("Bot: Forcing balance refresh in trading engine")
-    console.log("Bot: Current client balance:", client.balance, client.currency)
+    // Listen for balance updates and ensure bot engine gets updated
+    this.disposeBalanceListener = reaction(
+      () => client.balance,
+      (balance) => {
+        console.log("Bot: Balance updated to:", balance, client.currency)
 
-    // Force update the dbot_store with fresh client data
-    if (this.dbot_store) {
-      this.dbot_store.client = client
-      console.log("Bot: Updated dbot_store client reference")
-    }
+        // Update the dbot_store with fresh balance
+        if (this.dbot_store) {
+          this.dbot_store.client = client
+          console.log("Bot: Updated dbot_store with new balance")
+        }
 
-    // If there's an active bot interpreter, update its client reference
-    if (DBot.interpreter?.bot?.tradeEngine) {
-      // Force the trade engine to use the current client
-      DBot.interpreter.bot.tradeEngine.client = client
-      console.log("Bot: Updated trade engine client reference")
-    }
-
-    // Trigger a balance update event if available
-    if (client.balance !== undefined) {
-      // Force trigger balance update in the core
-      const balanceEvent = new CustomEvent("balance.update", {
-        detail: { balance: client.balance, currency: client.currency },
-      })
-      window.dispatchEvent(balanceEvent)
-      console.log("Bot: Dispatched balance update event")
-    }
+        // If there's an active bot interpreter, ensure it has the latest client data
+        if (DBot.interpreter?.bot?.tradeEngine) {
+          DBot.interpreter.bot.tradeEngine.client = client
+          console.log("Bot: Updated trade engine with new balance")
+        }
+      },
+    )
   }
 
   // Method to reinitialize the bot after account switching
@@ -186,9 +195,6 @@ export default class AppStore {
 
     // Terminate any existing bot instances
     DBot.terminateBot()
-
-    // Force balance refresh before reinitializing
-    await this.forceBalanceRefresh()
 
     // Reinitialize the interpreter with fresh account data
     DBot.initializeInterpreter()
@@ -258,10 +264,12 @@ export default class AppStore {
         // Switch to the target account if found and different from current
         if (target_loginid && target_loginid !== client.loginid) {
           console.log("Bot: Switching to account:", target_loginid)
+
+          // Use the official client.switchAccount method
           await client.switchAccount(target_loginid)
 
-          // Wait for the account switch to complete
-          await new Promise((resolve) => setTimeout(resolve, 2000))
+          // Wait for the account switch to complete and balance to update
+          await new Promise((resolve) => setTimeout(resolve, 3000))
 
           console.log(
             "Bot: Account switched. New account:",
@@ -273,16 +281,14 @@ export default class AppStore {
             client.currency,
           )
 
-          // Force balance refresh and reinitialize the bot after account switch
-          await this.forceBalanceRefresh()
+          // Reinitialize the bot after account switch
           await this.reinitializeBot()
 
           return true
         } else if (target_loginid === client.loginid) {
           console.log("Bot: Already on correct account. Balance:", client.balance, client.currency)
 
-          // Even if we're on the correct account, force balance refresh and reinitialize
-          await this.forceBalanceRefresh()
+          // Even if we're on the correct account, reinitialize to ensure fresh data
           await this.reinitializeBot()
         }
       }
@@ -336,6 +342,7 @@ export default class AppStore {
     this.registerOnAccountSwitch.call(this)
     this.registerLandingCompanyChangeReaction.call(this)
     this.registerResidenceChangeReaction.call(this)
+    this.registerBalanceListener() // Register balance listener
 
     window.addEventListener("click", this.onClickOutsideBlockly)
     window.addEventListener("beforeunload", this.onBeforeUnload)
@@ -374,6 +381,9 @@ export default class AppStore {
     }
     if (typeof this.disposeResidenceChangeReaction === "function") {
       this.disposeResidenceChangeReaction()
+    }
+    if (typeof this.disposeBalanceListener === "function") {
+      this.disposeBalanceListener()
     }
 
     window.removeEventListener("click", this.onClickOutsideBlockly)
@@ -441,6 +451,8 @@ export default class AppStore {
         if (!switch_broadcast) return
         this.showDigitalOptionsMaltainvestError()
 
+        console.log("Bot: Account switch broadcast received")
+
         if (ApiHelpers.instance) {
           const { active_symbols, contracts_for } = ApiHelpers.instance
 
@@ -460,6 +472,9 @@ export default class AppStore {
           }
           DBot.initializeInterpreter()
         }
+
+        // Update URL params after account switch
+        this.setUrlParams()
 
         // Re-check account from URL after account switch
         setTimeout(async () => {
@@ -536,4 +551,3 @@ export default class AppStore {
     this.handleErrorForEu(true)
   }
 }
-
