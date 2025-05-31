@@ -41,6 +41,7 @@ export default class AppStore {
       onClickOutsideBlockly: action,
       showDigitalOptionsMaltainvestError: action,
       handleAccountFromUrl: action,
+      ensureCorrectAccount: action,
     })
 
     this.root_store = root_store
@@ -146,8 +147,8 @@ export default class AppStore {
     return false
   }
 
-  // New method to handle account switching based on URL parameter
-  handleAccountFromUrl = () => {
+  // Enhanced method to handle account switching based on URL parameter
+  handleAccountFromUrl = async () => {
     const { client } = this.core
 
     // For tradeprofxapp.pages.dev, handle account switching from URL
@@ -156,6 +157,8 @@ export default class AppStore {
 
       if (account_param && client.is_logged_in) {
         console.log("Bot: Account parameter detected:", account_param)
+        console.log("Bot: Current account:", client.loginid, "is_virtual:", client.is_virtual)
+        console.log("Bot: Available accounts:", Object.keys(client.accounts))
 
         // Find the appropriate account based on the parameter
         let target_loginid = null
@@ -173,13 +176,36 @@ export default class AppStore {
           )
         }
 
+        console.log("Bot: Target account found:", target_loginid)
+
         // Switch to the target account if found and different from current
         if (target_loginid && target_loginid !== client.loginid) {
           console.log("Bot: Switching to account:", target_loginid)
-          client.switchAccount(target_loginid)
+          await client.switchAccount(target_loginid)
+
+          // Wait a bit for the account switch to complete
+          await new Promise((resolve) => setTimeout(resolve, 1000))
+
+          console.log("Bot: Account switched. New account:", client.loginid, "is_virtual:", client.is_virtual)
+          return true
         }
       }
     }
+    return false
+  }
+
+  // Method to ensure correct account before trading
+  ensureCorrectAccount = async () => {
+    const switched = await this.handleAccountFromUrl()
+    if (switched) {
+      // Refresh active symbols and contracts after account switch
+      if (ApiHelpers.instance) {
+        const { active_symbols, contracts_for } = ApiHelpers.instance
+        await active_symbols.retrieveActiveSymbols(true)
+        contracts_for.disposeCache()
+      }
+    }
+    return switched
   }
 
   onMount = () => {
@@ -422,3 +448,4 @@ export default class AppStore {
     this.handleErrorForEu(true)
   }
 }
+
