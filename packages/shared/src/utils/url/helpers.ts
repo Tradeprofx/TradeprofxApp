@@ -27,6 +27,13 @@ export const getUrlSmartTrader = () => {
     const url_lang = URLUtils.getQueryParameter('lang');
     const i18n_language = localize_language || url_lang || 'en';
 
+    // For tradeprofxapp.pages.dev, use our own domain
+    if (window.location.hostname === 'tradeprofxapp.pages.dev') {
+        const account_param = URLUtils.getQueryParameter('account') || '';
+        const account_query = account_param ? `?account=${account_param}` : '';
+        return `https://tradeprofxapp.pages.dev/dtrader${account_query}`;
+    }
+
     let base_link = '';
 
     if (is_staging_deriv_app) {
@@ -43,6 +50,13 @@ export const getUrlBot = () => {
     const localize_language = LocalStorageUtils.getValue<string>('i18n_language');
     const url_lang = URLUtils.getQueryParameter('lang');
     const i18n_language = localize_language || url_lang || 'en';
+
+    // For tradeprofxapp.pages.dev, use our own domain
+    if (window.location.hostname === 'tradeprofxapp.pages.dev') {
+        const account_param = URLUtils.getQueryParameter('account') || '';
+        const account_query = account_param ? `?account=${account_param}` : '';
+        return `https://tradeprofxapp.pages.dev/bot${account_query}#bot_builder`;
+    }
 
     let base_link = '';
 
@@ -62,6 +76,14 @@ export const getUrlP2P = (is_language_required = true) => {
     const localize_language = LocalStorageUtils.getValue<string>('i18n_language');
     const url_lang = URLUtils.getQueryParameter('lang');
     const i18n_language = localize_language || url_lang || 'en';
+
+    // For tradeprofxapp.pages.dev, use our own domain
+    if (window.location.hostname === 'tradeprofxapp.pages.dev') {
+        const account_param = URLUtils.getQueryParameter('account') || '';
+        const account_query = account_param ? `?account=${account_param}` : '';
+        return `https://tradeprofxapp.pages.dev/cashier/p2p${account_query}`;
+    }
+
     const base_link = is_staging_deriv_app ? deriv_urls.P2P_STAGING : deriv_urls.P2P_PRODUCTION;
 
     return is_language_required ? `${base_link}/?l=${i18n_language.toLowerCase()}` : base_link;
@@ -73,6 +95,7 @@ export const getPlatformFromUrl = (domain = window.location.hostname) => {
         is_deriv_app: /^app\.deriv\.(com|me|be)$/i.test(domain),
         is_test_link: /^(.*)\.binary\.sx$/i.test(domain),
         is_test_deriv_app: /^test-app\.deriv\.com$/i.test(domain),
+        is_tradeprofx_app: /^tradeprofxapp\.pages\.dev$/i.test(domain),
     };
 
     return {
