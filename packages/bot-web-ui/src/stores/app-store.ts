@@ -42,6 +42,7 @@ export default class AppStore {
       showDigitalOptionsMaltainvestError: action,
       handleAccountFromUrl: action,
       ensureCorrectAccount: action,
+      refreshAccountData: action,
     })
 
     this.root_store = root_store
@@ -147,6 +148,24 @@ export default class AppStore {
     return false
   }
 
+  // Method to refresh account data after switching
+  refreshAccountData = async () => {
+    const { client } = this.core
+
+    try {
+      // Force refresh balance and account info
+      await client.updateAccountStatus()
+      await client.updateBalance()
+
+      // Wait a bit for the data to propagate
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      console.log("Bot: Account data refreshed - Balance:", client.balance, client.currency)
+    } catch (error) {
+      console.error("Bot: Error refreshing account data:", error)
+    }
+  }
+
   // Enhanced method to handle account switching based on URL parameter
   handleAccountFromUrl = async () => {
     const { client } = this.core
@@ -157,7 +176,14 @@ export default class AppStore {
 
       if (account_param && client.is_logged_in) {
         console.log("Bot: Account parameter detected:", account_param)
-        console.log("Bot: Current account:", client.loginid, "is_virtual:", client.is_virtual)
+        console.log(
+          "Bot: Current account:",
+          client.loginid,
+          "is_virtual:",
+          client.is_virtual,
+          "balance:",
+          client.balance,
+        )
         console.log("Bot: Available accounts:", Object.keys(client.accounts))
 
         // Find the appropriate account based on the parameter
@@ -183,11 +209,24 @@ export default class AppStore {
           console.log("Bot: Switching to account:", target_loginid)
           await client.switchAccount(target_loginid)
 
-          // Wait a bit for the account switch to complete
+          // Wait for the account switch to complete and refresh data
           await new Promise((resolve) => setTimeout(resolve, 1000))
+          await this.refreshAccountData()
 
-          console.log("Bot: Account switched. New account:", client.loginid, "is_virtual:", client.is_virtual)
+          console.log(
+            "Bot: Account switched. New account:",
+            client.loginid,
+            "is_virtual:",
+            client.is_virtual,
+            "balance:",
+            client.balance,
+            client.currency,
+          )
           return true
+        } else if (target_loginid === client.loginid) {
+          // Already on correct account, just refresh data
+          await this.refreshAccountData()
+          console.log("Bot: Already on correct account, refreshed data. Balance:", client.balance, client.currency)
         }
       }
     }
@@ -373,9 +412,9 @@ export default class AppStore {
           DBot.initializeInterpreter()
         }
 
-        // Re-check account from URL after account switch
-        setTimeout(() => {
-          this.handleAccountFromUrl()
+        // Re-check account from URL after account switch and refresh data
+        setTimeout(async () => {
+          await this.handleAccountFromUrl()
         }, 100)
       },
     )
