@@ -102,9 +102,9 @@ export const getSocketURL = (is_wallets = false) => {
     const loginid = local_storage_loginid || active_loginid_from_url;
     const is_real = loginid && !/^(VRT|VRW)/.test(loginid);
 
-    // For tradeprofxapp.pages.dev, use frontend.derivws.com for better reliability
+    // For tradeprofxapp.pages.dev, use ws.derivws.com instead of frontend.derivws.com
     if (window.location.hostname === 'tradeprofxapp.pages.dev') {
-        const server_url = 'frontend.derivws.com';
+        const server_url = 'ws.derivws.com';
         console.log('TradeProfx: Using WebSocket URL:', server_url, 'Brand:', website_name.toLowerCase());
         return server_url;
     }
