@@ -86,6 +86,7 @@ export default class RunPanelStore {
       preloadAudio: action,
       onMount: action,
       onUnmount: action,
+      verifyTradeEngineBalance: action,
     })
 
     this.root_store = root_store
@@ -158,6 +159,34 @@ export default class RunPanelStore {
   performSelfExclusionCheck = async () => {
     const { self_exclusion } = this.root_store
     await self_exclusion.checkRestriction()
+  }
+
+  // Method to verify trade engine has correct balance
+  verifyTradeEngineBalance = () => {
+    const { client } = this.core
+
+    if (this.dbot?.interpreter?.bot?.tradeEngine) {
+      const engine = this.dbot.interpreter.bot.tradeEngine
+      const engineBalance = engine.balance || engine.client?.balance || 0
+      const clientBalance = client.balance
+
+      console.log("Bot: Verifying trade engine balance:")
+      console.log("Bot: Client balance:", clientBalance, client.currency)
+      console.log("Bot: Engine balance:", engineBalance)
+      console.log("Bot: Engine client:", !!engine.client)
+
+      if (engineBalance !== clientBalance) {
+        console.error("Bot: BALANCE MISMATCH DETECTED!")
+        console.error("Bot: Expected:", clientBalance, "Got:", engineBalance)
+        return false
+      }
+
+      console.log("Bot: Balance verification PASSED ✅")
+      return true
+    }
+
+    console.warn("Bot: Trade engine not found for verification")
+    return false
   }
 
   onRunButtonClick = async () => {
@@ -261,6 +290,44 @@ export default class RunPanelStore {
         this.root_store.app.dbot_store.client = client
         console.log("Bot: Updated dbot_store with current client before running")
         console.log("Bot: dbot_store client balance:", this.root_store.app.dbot_store.client.balance)
+      }
+
+      // Force update the trade engine before running
+      if (this.root_store.app.forceUpdateTradeEngine) {
+        this.root_store.app.forceUpdateTradeEngine()
+      }
+
+      // Additional verification - check if trade engine has correct balance
+      if (this.dbot.interpreter?.bot?.tradeEngine) {
+        const engineBalance =
+          this.dbot.interpreter.bot.tradeEngine.balance || this.dbot.interpreter.bot.tradeEngine.client?.balance
+        console.log("Bot: Trade engine balance before start:", engineBalance)
+
+        if (engineBalance !== client.balance) {
+          console.warn("Bot: Trade engine balance mismatch! Engine:", engineBalance, "Client:", client.balance)
+          // Force another update
+          this.root_store.app.forceUpdateTradeEngine()
+
+          // Verify again
+          const newEngineBalance =
+            this.dbot.interpreter.bot.tradeEngine.balance || this.dbot.interpreter.bot.tradeEngine.client?.balance
+          if (newEngineBalance !== client.balance) {
+            console.error("Bot: CRITICAL - Trade engine still has wrong balance after force update!")
+            this.showErrorMessage(
+              `Trade engine balance mismatch. Expected: ${client.balance} ${client.currency}, Got: ${newEngineBalance}`,
+            )
+            this.setIsRunning(false)
+            return
+          }
+        }
+      }
+
+      // Verify balance one more time before starting
+      if (!this.verifyTradeEngineBalance()) {
+        console.error("Bot: Balance verification failed. Stopping bot start.")
+        this.showErrorMessage("Balance verification failed. Please try again.")
+        this.setIsRunning(false)
+        return
       }
 
       // Force reinitialize the bot before running to ensure fresh account data
