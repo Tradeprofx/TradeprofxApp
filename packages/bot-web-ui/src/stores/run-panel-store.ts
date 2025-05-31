@@ -179,9 +179,8 @@ export default class RunPanelStore {
     // Check and switch to correct account based on URL parameter
     await this.root_store.app.ensureCorrectAccount()
 
-    // Wait a bit more and force another balance refresh
+    // Wait a bit more for any pending updates
     await new Promise((resolve) => setTimeout(resolve, 1000))
-    await client.updateBalance()
 
     console.log(
       "Bot: After account check - Current account:",
@@ -192,13 +191,6 @@ export default class RunPanelStore {
       client.balance,
       client.currency,
     )
-
-    // Verify we have sufficient balance
-    if (client.balance <= 0) {
-      console.warn("Bot: Insufficient balance detected, refreshing account data...")
-      await this.root_store.app.refreshAccountData()
-      console.log("Bot: After refresh - Balance:", client.balance, client.currency)
-    }
 
     this.dbot.saveRecentWorkspace()
     this.dbot.unHighlightAllBlocks()
@@ -776,4 +768,3 @@ export default class RunPanelStore {
     })
   }
 }
-
