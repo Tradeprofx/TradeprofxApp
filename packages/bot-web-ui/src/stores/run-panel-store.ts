@@ -166,13 +166,39 @@ export default class RunPanelStore {
     const is_ios = mobileOSDetect() === "iOS"
 
     // IMPORTANT: Ensure correct account before starting the bot
-    console.log("Bot: Before account check - Current account:", client.loginid, "is_virtual:", client.is_virtual)
+    console.log(
+      "Bot: Before account check - Current account:",
+      client.loginid,
+      "is_virtual:",
+      client.is_virtual,
+      "balance:",
+      client.balance,
+      client.currency,
+    )
 
     // Check and switch to correct account based on URL parameter
     await this.root_store.app.ensureCorrectAccount()
 
-    console.log("Bot: After account check - Current account:", client.loginid, "is_virtual:", client.is_virtual)
-    console.log("Bot: Account balance:", client.balance, client.currency)
+    // Wait a bit more and force another balance refresh
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await client.updateBalance()
+
+    console.log(
+      "Bot: After account check - Current account:",
+      client.loginid,
+      "is_virtual:",
+      client.is_virtual,
+      "balance:",
+      client.balance,
+      client.currency,
+    )
+
+    // Verify we have sufficient balance
+    if (client.balance <= 0) {
+      console.warn("Bot: Insufficient balance detected, refreshing account data...")
+      await this.root_store.app.refreshAccountData()
+      console.log("Bot: After refresh - Balance:", client.balance, client.currency)
+    }
 
     this.dbot.saveRecentWorkspace()
     this.dbot.unHighlightAllBlocks()
