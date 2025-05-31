@@ -42,6 +42,7 @@ export default class AppStore {
       showDigitalOptionsMaltainvestError: action,
       handleAccountFromUrl: action,
       ensureCorrectAccount: action,
+      reinitializeBot: action,
     })
 
     this.root_store = root_store
@@ -147,6 +148,39 @@ export default class AppStore {
     return false
   }
 
+  // Method to reinitialize the bot after account switching
+  reinitializeBot = async () => {
+    console.log("Bot: Reinitializing bot engine after account switch")
+
+    // Terminate any existing bot instances
+    DBot.terminateBot()
+
+    // Reinitialize the interpreter with fresh account data
+    DBot.initializeInterpreter()
+
+    // Refresh symbols and contracts
+    if (ApiHelpers.instance) {
+      const { active_symbols, contracts_for } = ApiHelpers.instance
+      await active_symbols.retrieveActiveSymbols(true)
+      contracts_for.disposeCache()
+    }
+
+    // Force refresh of workspace blocks
+    if (window.Blockly?.derivWorkspace) {
+      window.Blockly.derivWorkspace
+        .getAllBlocks()
+        .filter((block) => block.type === "trade_definition_market" || block.type === "trade_definition_tradeoptions")
+        .forEach((block) => {
+          runIrreversibleEvents(() => {
+            const fake_create_event = new window.Blockly.Events.BlockCreate(block)
+            window.Blockly.Events.fire(fake_create_event)
+          })
+        })
+    }
+
+    console.log("Bot: Reinitialization complete")
+  }
+
   // Enhanced method to handle account switching based on URL parameter
   handleAccountFromUrl = async () => {
     const { client } = this.core
@@ -192,7 +226,7 @@ export default class AppStore {
           await client.switchAccount(target_loginid)
 
           // Wait for the account switch to complete
-          await new Promise((resolve) => setTimeout(resolve, 1500))
+          await new Promise((resolve) => setTimeout(resolve, 2000))
 
           console.log(
             "Bot: Account switched. New account:",
@@ -203,9 +237,16 @@ export default class AppStore {
             client.balance,
             client.currency,
           )
+
+          // Reinitialize the bot after account switch
+          await this.reinitializeBot()
+
           return true
         } else if (target_loginid === client.loginid) {
           console.log("Bot: Already on correct account. Balance:", client.balance, client.currency)
+
+          // Even if we're on the correct account, reinitialize to ensure fresh data
+          await this.reinitializeBot()
         }
       }
     }
@@ -215,14 +256,6 @@ export default class AppStore {
   // Method to ensure correct account before trading
   ensureCorrectAccount = async () => {
     const switched = await this.handleAccountFromUrl()
-    if (switched) {
-      // Refresh active symbols and contracts after account switch
-      if (ApiHelpers.instance) {
-        const { active_symbols, contracts_for } = ApiHelpers.instance
-        await active_symbols.retrieveActiveSymbols(true)
-        contracts_for.disposeCache()
-      }
-    }
     return switched
   }
 
@@ -466,4 +499,3 @@ export default class AppStore {
     this.handleErrorForEu(true)
   }
 }
-
