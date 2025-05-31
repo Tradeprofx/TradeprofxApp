@@ -192,6 +192,9 @@ export default class RunPanelStore {
       client.currency,
     )
 
+    // Force another balance refresh right before running
+    await this.root_store.app.forceBalanceRefresh()
+
     // Check if we have sufficient balance
     if (client.balance <= 0 && client.is_virtual) {
       console.warn("Bot: Demo account with zero balance detected. This should not happen.")
@@ -258,6 +261,13 @@ export default class RunPanelStore {
       this.dbot.terminateBot()
       this.dbot.initializeInterpreter()
 
+      // Update the dbot store with current client before running
+      if (this.root_store.app.dbot_store) {
+        this.root_store.app.dbot_store.client = client
+        console.log("Bot: Updated dbot_store client before running")
+      }
+
+      console.log("Bot: Starting bot with balance:", client.balance, client.currency)
       this.dbot.runBot()
     })
     this.setShowBotStopMessage(false)
