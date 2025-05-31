@@ -1,4 +1,4 @@
-export const website_domain = 'tradeprofxapp.pages.dev';
-export const website_name = 'Deriv'; // MUST be 'Deriv' for WebSocket to work
-export const default_title = 'TradeProfx'; // Your custom title
+is export const website_domain = 'app.deriv.com'; 
+export const website_name = 'Deriv'; 
+export const default_title = website_name; 
 export const TRACKING_STATUS_KEY = 'tracking_status';
