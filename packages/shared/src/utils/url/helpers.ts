@@ -2,130 +2,130 @@ import { LocalStorageUtils, URLUtils } from '@deriv-com/utils';
 import { deriv_urls } from './constants';
 
 /**
- * @deprecated Please use 'URLUtils.getQueryParameter' from '@deriv-com/utils' instead of this.
- */
+* @deprecated Please use 'URLUtils.getQueryParameter' from '@deriv-com/utils' instead of this.
+*/
 export const getlangFromUrl = () => {
-    const queryString = window.location.search;
-    const urlParams = new URLSearchParams(queryString);
-    const lang = urlParams.get('lang');
-    return lang;
+   const queryString = window.location.search;
+   const urlParams = new URLSearchParams(queryString);
+   const lang = urlParams.get('lang');
+   return lang;
 };
 
 /**
- * @deprecated Please use 'URLUtils.getQueryParameter' from '@deriv-com/utils' instead of this.
- */
+* @deprecated Please use 'URLUtils.getQueryParameter' from '@deriv-com/utils' instead of this.
+*/
 export const getActionFromUrl = () => {
-    const queryString = window.location.search;
-    const urlParams = new URLSearchParams(queryString);
-    const action = urlParams.get('action');
-    return action;
+   const queryString = window.location.search;
+   const urlParams = new URLSearchParams(queryString);
+   const action = urlParams.get('action');
+   return action;
 };
 
 export const getUrlSmartTrader = () => {
-    const { is_staging_deriv_app } = getPlatformFromUrl();
-    const localize_language = LocalStorageUtils.getValue<string>('i18n_language');
-    const url_lang = URLUtils.getQueryParameter('lang');
-    const i18n_language = localize_language || url_lang || 'en';
+   const { is_staging_deriv_app } = getPlatformFromUrl();
+   const localize_language = LocalStorageUtils.getValue<string>('i18n_language');
+   const url_lang = URLUtils.getQueryParameter('lang');
+   const i18n_language = localize_language || url_lang || 'en';
 
-    // For tradeprofxapp.pages.dev, use our own domain
-    if (window.location.hostname === 'tradeprofxapp.pages.dev') {
-        const account_param = URLUtils.getQueryParameter('account') || '';
-        const account_query = account_param ? `?account=${account_param}` : '';
-        return `https://tradeprofxapp.pages.dev/dtrader${account_query}`;
-    }
+   // For tradeprofxapp.pages.dev, use our own domain
+   if (window.location.hostname === 'tradeprofxapp.pages.dev') {
+       const account_param = new URLSearchParams(window.location.search).get('account') || '';
+       const account_query = account_param ? `?account=${account_param}` : '';
+       return `https://tradeprofxapp.pages.dev/dtrader${account_query}`;
+   }
 
-    let base_link = '';
+   let base_link = '';
 
-    if (is_staging_deriv_app) {
-        base_link = deriv_urls.SMARTTRADER_STAGING;
-    } else {
-        base_link = deriv_urls.SMARTTRADER_PRODUCTION;
-    }
+   if (is_staging_deriv_app) {
+       base_link = deriv_urls.SMARTTRADER_STAGING;
+   } else {
+       base_link = deriv_urls.SMARTTRADER_PRODUCTION;
+   }
 
-    return `${base_link}/${i18n_language.toLowerCase()}/trading.html`;
+   return `${base_link}/${i18n_language.toLowerCase()}/trading.html`;
 };
 
 export const getUrlBot = () => {
-    const { is_staging_deriv_app } = getPlatformFromUrl();
-    const localize_language = LocalStorageUtils.getValue<string>('i18n_language');
-    const url_lang = URLUtils.getQueryParameter('lang');
-    const i18n_language = localize_language || url_lang || 'en';
+   const { is_staging_deriv_app } = getPlatformFromUrl();
+   const localize_language = LocalStorageUtils.getValue<string>('i18n_language');
+   const url_lang = URLUtils.getQueryParameter('lang');
+   const i18n_language = localize_language || url_lang || 'en';
 
-    // For tradeprofxapp.pages.dev, use our own domain
-    if (window.location.hostname === 'tradeprofxapp.pages.dev') {
-        const account_param = URLUtils.getQueryParameter('account') || '';
-        const account_query = account_param ? `?account=${account_param}` : '';
-        return `https://tradeprofxapp.pages.dev/bot${account_query}#bot_builder`;
-    }
+   // For tradeprofxapp.pages.dev, use our own domain
+   if (window.location.hostname === 'tradeprofxapp.pages.dev') {
+       const account_param = new URLSearchParams(window.location.search).get('account') || '';
+       const account_query = account_param ? `?account=${account_param}` : '';
+       return `https://tradeprofxapp.pages.dev/bot${account_query}#bot_builder`;
+   }
 
-    let base_link = '';
+   let base_link = '';
 
-    if (is_staging_deriv_app) {
-        base_link = deriv_urls.BOT_STAGING;
-    } else {
-        base_link = deriv_urls.BOT_PRODUCTION;
-    }
+   if (is_staging_deriv_app) {
+       base_link = deriv_urls.BOT_STAGING;
+   } else {
+       base_link = deriv_urls.BOT_PRODUCTION;
+   }
 
-    const url = `${base_link}?lang=${i18n_language.toLowerCase()}`;
-    return url;
+   const url = `${base_link}?lang=${i18n_language.toLowerCase()}`;
+   return url;
 };
 
 export const getUrlP2P = (is_language_required = true) => {
-    const { is_staging_deriv_app } = getPlatformFromUrl();
+   const { is_staging_deriv_app } = getPlatformFromUrl();
 
-    const localize_language = LocalStorageUtils.getValue<string>('i18n_language');
-    const url_lang = URLUtils.getQueryParameter('lang');
-    const i18n_language = localize_language || url_lang || 'en';
+   const localize_language = LocalStorageUtils.getValue<string>('i18n_language');
+   const url_lang = URLUtils.getQueryParameter('lang');
+   const i18n_language = localize_language || url_lang || 'en';
 
-    // For tradeprofxapp.pages.dev, use our own domain
-    if (window.location.hostname === 'tradeprofxapp.pages.dev') {
-        const account_param = URLUtils.getQueryParameter('account') || '';
-        const account_query = account_param ? `?account=${account_param}` : '';
-        return `https://tradeprofxapp.pages.dev/cashier/p2p${account_query}`;
-    }
+   // For tradeprofxapp.pages.dev, use our own domain
+   if (window.location.hostname === 'tradeprofxapp.pages.dev') {
+       const account_param = new URLSearchParams(window.location.search).get('account') || '';
+       const account_query = account_param ? `?account=${account_param}` : '';
+       return `https://tradeprofxapp.pages.dev/cashier/p2p${account_query}`;
+   }
 
-    const base_link = is_staging_deriv_app ? deriv_urls.P2P_STAGING : deriv_urls.P2P_PRODUCTION;
+   const base_link = is_staging_deriv_app ? deriv_urls.P2P_STAGING : deriv_urls.P2P_PRODUCTION;
 
-    return is_language_required ? `${base_link}/?l=${i18n_language.toLowerCase()}` : base_link;
+   return is_language_required ? `${base_link}/?l=${i18n_language.toLowerCase()}` : base_link;
 };
 
 export const getPlatformFromUrl = (domain = window.location.hostname) => {
-    const resolutions = {
-        is_staging_deriv_app: /^staging-app\.deriv\.(com|me|be)$/i.test(domain),
-        is_deriv_app: /^app\.deriv\.(com|me|be)$/i.test(domain),
-        is_test_link: /^(.*)\.binary\.sx$/i.test(domain),
-        is_test_deriv_app: /^test-app\.deriv\.com$/i.test(domain),
-        is_tradeprofx_app: /^tradeprofxapp\.pages\.dev$/i.test(domain),
-    };
+   const resolutions = {
+       is_staging_deriv_app: /^staging-app\.deriv\.(com|me|be)$/i.test(domain),
+       is_deriv_app: /^app\.deriv\.(com|me|be)$/i.test(domain),
+       is_test_link: /^(.*)\.binary\.sx$/i.test(domain),
+       is_test_deriv_app: /^test-app\.deriv\.com$/i.test(domain),
+       is_tradeprofx_app: /^tradeprofxapp\.pages\.dev$/i.test(domain),
+   };
 
-    return {
-        ...resolutions,
-        is_staging: resolutions.is_staging_deriv_app,
-        is_test_link: resolutions.is_test_link,
-    };
+   return {
+       ...resolutions,
+       is_staging: resolutions.is_staging_deriv_app,
+       is_test_link: resolutions.is_test_link,
+   };
 };
 
 export const isStaging = (domain = window.location.hostname) => {
-    const { is_staging_deriv_app } = getPlatformFromUrl(domain);
+   const { is_staging_deriv_app } = getPlatformFromUrl(domain);
 
-    return is_staging_deriv_app;
+   return is_staging_deriv_app;
 };
 
 export const isTestDerivApp = (domain = window.location.hostname) => {
-    const { is_test_deriv_app } = getPlatformFromUrl(domain);
+   const { is_test_deriv_app } = getPlatformFromUrl(domain);
 
-    return is_test_deriv_app;
+   return is_test_deriv_app;
 };
 
 export const removeActionParam = (action_to_remove: string) => {
-    const { pathname, search } = window.location;
-    const search_params = new URLSearchParams(search);
+   const { pathname, search } = window.location;
+   const search_params = new URLSearchParams(search);
 
-    if (search_params.get('action') === action_to_remove) {
-        search_params.delete('action');
-    }
-    const new_search = search_params.toString();
-    const new_path = `${pathname}${new_search ? `?${new_search}` : ''}`;
+   if (search_params.get('action') === action_to_remove) {
+       search_params.delete('action');
+   }
+   const new_search = search_params.toString();
+   const new_path = `${pathname}${new_search ? `?${new_search}` : ''}`;
 
-    window.history.pushState({}, '', new_path);
+   window.history.pushState({}, '', new_path);
 };
